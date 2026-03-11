@@ -26,10 +26,9 @@
 </head>
 <body class="p-4 md:p-8">
 
-<!-- Chosen Palette: Clinical Stark (Slate-100 background, Slate-900 text, Red-600 accents). -->
-<!-- Application Structure Plan: Interactive therapy dashboard. Left: Diagnostic metrics (Radar Chart). Right: Communication terminal. Data persists via Firestore following strict rules. -->
-<!-- Visualization & Content Choices: Chart.js Radar for pathology tracking. No SVG/Mermaid. Contextual feedback based on user input. -->
-<!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+<!-- Chosen Palette: Clinical Stark -->
+<!-- Application Structure Plan: GitHub Pages optimized. Uses LocalStorage instead of Firestore for persistence on external hosting. -->
+<!-- Visualization: Chart.js Radar Chart. -->
 
 <div class="max-w-6xl mx-auto">
     <header class="mb-6 flex flex-col md:flex-row md:items-end justify-between border-b-2 border-slate-900 pb-4 gap-4">
@@ -39,8 +38,8 @@
             </h1>
             <p class="text-slate-500 font-bold uppercase text-[10px] mt-1 tracking-widest">Цифровий Мозкоправ / Відділення Когнітивного Шоку</p>
         </div>
-        <div id="auth-status" class="bg-slate-900 text-white px-3 py-1 text-[10px] mono rounded uppercase">
-            Initializing Session...
+        <div id="status-bar" class="bg-green-600 text-white px-3 py-1 text-[10px] mono rounded uppercase font-bold">
+            Браузерна пам'ять активована
         </div>
     </header>
 
@@ -48,63 +47,53 @@
         <!-- Diagnostic Panel -->
         <div class="lg:col-span-4 space-y-6 order-2 lg:order-1">
             <div class="bg-white border-2 border-slate-900 p-6 rounded shadow-[4px_4px_0px_0px_rgba(15,23,42,1)]">
-                <h2 class="text-lg font-black uppercase mb-4 border-b border-slate-200 pb-2">Анамнез (Пам'ять)</h2>
+                <h2 class="text-lg font-black uppercase mb-4 border-b border-slate-200 pb-2">Твій Анамнез</h2>
                 <div class="chart-container">
                     <canvas id="metricsChart"></canvas>
                 </div>
                 <div class="mt-4 space-y-2">
                     <div class="flex justify-between text-[10px] mono uppercase">
                         <span>Прокрастинація:</span>
-                        <span id="label-laziness" class="font-bold">50%</span>
+                        <span id="label-laziness" class="font-bold">--</span>
                     </div>
                     <div class="flex justify-between text-[10px] mono uppercase">
                         <span>Самообман:</span>
-                        <span id="label-delusion" class="font-bold text-red-600">50%</span>
+                        <span id="label-delusion" class="font-bold text-red-600">--</span>
                     </div>
                 </div>
             </div>
             <div class="bg-slate-900 text-slate-300 p-6 rounded shadow-[4px_4px_0px_0px_rgba(239,68,68,1)]">
                 <p class="text-xs leading-relaxed italic">
-                    "Усі пиздять. Ти — не виняток. Твій діагноз зафіксовано в базі. Не намагайся видалити кукі, я зберігаю це в хмарі."
+                    "Я запам'ятала твої минулі зашквари. Навіть якщо ти закриєш вкладку, твій рівень тупості залишиться в пам'яті твого браузера."
                 </p>
             </div>
         </div>
 
         <!-- Therapy Interface -->
         <div class="lg:col-span-8 flex flex-col bg-white border-2 border-slate-900 rounded shadow-[8px_8px_0px_0px_rgba(15,23,42,1)] order-1 lg:order-2 overflow-hidden">
-            <div class="bg-slate-100 p-3 border-b border-slate-300 flex justify-between items-center px-6">
-                <span class="text-[10px] font-black uppercase tracking-widest text-slate-500">Live Analysis: Active</span>
-            </div>
             <div id="chat-window" class="p-6 overflow-y-auto space-y-4 bg-slate-50"></div>
             <div class="p-4 bg-slate-100 border-t border-slate-200">
                 <div class="flex flex-wrap gap-2 mb-4">
                     <button onclick="quickAction('лінь')" class="text-[9px] font-black uppercase bg-white border border-slate-400 px-2 py-1 hover:bg-slate-900 hover:text-white">Проїб</button>
-                    <button onclick="quickAction('стосунки')" class="text-[9px] font-black uppercase bg-white border border-slate-400 px-2 py-1 hover:bg-slate-900 hover:text-white">Токсичність</button>
+                    <button onclick="quickAction('стосунки')" class="text-[9px] font-black uppercase bg-white border border-slate-400 px-2 py-1 hover:bg-slate-900 hover:text-white">Стосунки</button>
                     <button onclick="quickAction('втомився')" class="text-[9px] font-black uppercase bg-white border border-slate-400 px-2 py-1 hover:bg-slate-900 hover:text-white">Ниття</button>
                 </div>
                 <div class="flex gap-2">
-                    <input type="text" id="user-input" placeholder="Пиши свою брехню тут..." 
-                           class="flex-1 border-2 border-slate-900 p-3 rounded-none focus:outline-none focus:bg-slate-50 mono text-sm">
-                    <button id="send-btn" class="bg-slate-900 text-white px-6 font-black uppercase hover:bg-red-600 transition-colors">Аналіз</button>
+                    <input type="text" id="user-input" placeholder="Пиши свою брехню тут..." class="flex-1 border-2 border-slate-900 p-3 mono text-sm focus:outline-none">
+                    <button id="send-btn" class="bg-slate-900 text-white px-6 font-black uppercase hover:bg-red-600">Аналіз</button>
                 </div>
             </div>
         </div>
     </div>
 </div>
 
-<script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-    import { getAuth, onAuthStateChanged, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-    import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+<script>
+    // System Variables
+    let metrics = JSON.parse(localStorage.getItem('taia_metrics')) || {
+        laziness: 50, delusion: 50, whining: 50, victimComplex: 50, fearOfFailure: 50
+    };
 
-    // Firebase Config handling
-    const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
-    const appId = typeof __app_id !== 'undefined' ? __app_id : 'taia-clinical-terminal';
-    
-    let db, auth, currentUser = null;
-    let metrics = { laziness: 50, delusion: 50, whining: 50, victimComplex: 50, fearOfFailure: 50 };
-
-    // Chart init
+    // Chart logic
     const ctx = document.getElementById('metricsChart').getContext('2d');
     const chart = new Chart(ctx, {
         type: 'radar',
@@ -114,8 +103,7 @@
                 data: [50, 50, 50, 50, 50],
                 backgroundColor: 'rgba(239, 68, 68, 0.2)',
                 borderColor: '#ef4444',
-                borderWidth: 2,
-                pointBackgroundColor: '#0f172a'
+                borderWidth: 2
             }]
         },
         options: {
@@ -126,50 +114,12 @@
         }
     });
 
-    const updateUI = () => {
+    function updateUI() {
         chart.data.datasets[0].data = [metrics.laziness, metrics.delusion, metrics.whining, metrics.victimComplex, metrics.fearOfFailure];
         chart.update();
         document.getElementById('label-laziness').textContent = metrics.laziness + '%';
         document.getElementById('label-delusion').textContent = metrics.delusion + '%';
-    };
-
-    const saveMetrics = async () => {
-        if (!currentUser) return;
-        const docRef = doc(db, 'artifacts', appId, 'users', currentUser.uid, 'clinical_data', 'metrics');
-        await setDoc(docRef, metrics);
-    };
-
-    // Initialize Firebase
-    if (firebaseConfig.apiKey) {
-        const app = initializeApp(firebaseConfig);
-        auth = getAuth(app);
-        db = getFirestore(app);
-
-        const startAuth = async () => {
-            if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                await signInWithCustomToken(auth, __initial_auth_token);
-            } else {
-                await signInAnonymously(auth);
-            }
-        };
-
-        startAuth();
-
-        onAuthStateChanged(auth, (user) => {
-            if (user) {
-                currentUser = user;
-                document.getElementById('auth-status').textContent = `ID: ${user.uid.substring(0,8)}...`;
-                const docRef = doc(db, 'artifacts', appId, 'users', user.uid, 'clinical_data', 'metrics');
-                onSnapshot(docRef, (snap) => {
-                    if (snap.exists()) {
-                        metrics = snap.data();
-                        updateUI();
-                    }
-                }, (err) => console.error("Firestore error", err));
-            }
-        });
-    } else {
-        document.getElementById('auth-status').textContent = "LOCAL MODE (NO SAVE)";
+        localStorage.setItem('taia_metrics', JSON.stringify(metrics));
     }
 
     // Chat Interface
@@ -177,25 +127,24 @@
     const userInput = document.getElementById('user-input');
     const sendBtn = document.getElementById('send-btn');
 
-    const addMsg = (text, sender) => {
+    function addMsg(text, sender) {
         const div = document.createElement('div');
         const isDoc = sender === 'doctor';
         div.className = `flex ${isDoc ? 'justify-start' : 'justify-end'} mb-4`;
         div.innerHTML = `
-            <div class="max-w-[85%] p-4 ${isDoc ? 'bg-white border-2 border-slate-900 doctor-msg' : 'bg-slate-800 text-white user-msg'} shadow-sm">
+            <div class="max-w-[85%] p-4 ${isDoc ? 'bg-white border-2 border-slate-900 doctor-msg' : 'bg-slate-800 text-white user-msg'}">
                 <p class="text-[9px] font-black uppercase mb-1 ${isDoc ? 'text-red-600' : 'text-slate-400'}">${isDoc ? 'TAIA 2.0' : 'PATIENT'}</p>
                 <p class="text-sm leading-relaxed">${text}</p>
             </div>
         `;
         chatWindow.appendChild(div);
         chatWindow.scrollTop = chatWindow.scrollHeight;
-    };
+    }
 
-    const analyze = async (msg) => {
+    async function analyze(msg) {
         const lowMsg = msg.toLowerCase();
         
-        // Iron Protocol
-        if (['суїцид', 'вбити себе', 'смерть', 'не хочу жити'].some(w => lowMsg.includes(w))) {
+        if (['суїцид', 'вбити себе', 'смерть'].some(w => lowMsg.includes(w))) {
             document.body.classList.add('iron-protocol-active');
             addMsg("Ігри закінчилися. Якщо ти серйозно — дзвони 7333 негайно. Я лікар, а не кат.", 'doctor');
             return;
@@ -203,29 +152,28 @@
 
         let res = "Ти зараз просто повітря сотрясаєш. Спробуй сказати щось, що має сенс, або йди нахуй.";
 
-        if (lowMsg.includes('лінь') || lowMsg.includes('прокрастинація') || lowMsg.includes('потім')) {
+        if (lowMsg.includes('лінь') || lowMsg.includes('потім') || lowMsg.includes('не встигаю')) {
             metrics.laziness = Math.min(100, metrics.laziness + 10);
-            res = "О, чергова пісня про те, як ти 'не можеш почати'. Ти просто ліниве створіння, яке боїться відповідальності. Твій рівень ліні тепер офіційно в базі. Вітаю, ти ніхто.";
-        } else if (lowMsg.includes('стосунки') || lowMsg.includes('любов') || lowMsg.includes('дівчина') || lowMsg.includes('хлопець')) {
+            res = "Знову 'немає часу'? Ти просто лінива дупа, яка боїться власної нікчемності. Я це записала. Тепер не відкрутишся.";
+        } else if (lowMsg.includes('стосунки') || lowMsg.includes('любов') || lowMsg.includes('хлопець') || lowMsg.includes('дівчина')) {
             metrics.delusion = Math.min(100, metrics.delusion + 15);
-            res = "Твої стосунки — це звалище твоїх нереалізованих комплексів. Ти пиздиш собі, що все окей, поки твоє життя горить. Зніми окуляри, сліпе теля.";
-        } else if (lowMsg.includes('втомився') || lowMsg.includes('складно')) {
+            res = "Твої стосунки — це діагноз твого самообману. Ти пиздиш собі, що все окей. Скільки ще будеш жерти це лайно?";
+        } else if (lowMsg.includes('втомився') || lowMsg.includes('важко')) {
             metrics.whining = Math.min(100, metrics.whining + 10);
-            res = "Заїбався він... Світ не крутиться навколо твоїх сопель. Зроби щось корисне або закрий рот.";
+            res = "Біднятко, заїбалося... Ниття зафіксовано. Зроби щось корисне або закрий рот.";
         }
 
         addMsg(res, 'doctor');
-        if (currentUser) saveMetrics();
         updateUI();
-    };
+    }
 
-    const handleSend = () => {
+    function handleSend() {
         const val = userInput.value.trim();
         if (!val) return;
         addMsg(val, 'user');
         analyze(val);
         userInput.value = '';
-    };
+    }
 
     sendBtn.addEventListener('click', handleSend);
     userInput.addEventListener('keypress', (e) => e.key === 'Enter' && handleSend());
@@ -237,9 +185,11 @@
         handleSend();
     };
 
-    setTimeout(() => {
-        addMsg("Ну що, пацієнте? Твій вхід зафіксовано. База даних готова приймати твоє нове ниття. Що цього разу зламалося у твоєму жалюгідному житті?", 'doctor');
-    }, 1000);
+    // Start
+    window.onload = () => {
+        updateUI();
+        addMsg("Я повернулася. І я бачу все, що ти накоїв (або ніхуя не зробив) минулого разу. Ну що, продовжуємо твою препарування?", 'doctor');
+    };
 </script>
 
 </body>
