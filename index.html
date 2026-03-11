@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TAIA 2.0: Clinical Terminal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap');
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f1f5f9;
+            color: #0f172a;
+        }
+
+        .mono { font-family: 'JetBrains Mono', monospace; }
+
+        .chart-container {
+            position: relative;
+            width: 100%;
+            height: 300px;
+            max-width: 450px;
+            margin: auto;
+        }
+
+        #chat-window {
+            height: 500px;
+            scrollbar-width: thin;
+            scrollbar-color: #cbd5e1 transparent;
+        }
+
+        .iron-protocol {
+            background: #7f1d1d !important;
+            color: #fef2f2 !important;
+            border: 4px solid #ef4444 !important;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+            70% { box-shadow: 0 0 0 15px rgba(239, 68, 68, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+        }
+
+        .doctor-msg { border-left: 4px solid #ef4444; }
+        .user-msg { border-right: 4px solid #334155; }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+
+    <!-- Chosen Palette: Clinical Cold (Slate-100 bg, Slate-900 accents, Red-600 warnings) -->
+    <!-- Application Structure Plan: A medical dashboard split between a chat-based therapy interface and a data-driven diagnostic panel using Firestore for persistent patient records. -->
+    <!-- Visualization & Content Choices: Radar chart for multidimensional flaw analysis. Persistence via Firestore. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+
+    <div class="max-w-6xl mx-auto">
+        <header class="mb-6 flex flex-col md:flex-row md:items-end justify-between border-b-2 border-slate-900 pb-4 gap-4">
+            <div>
+                <h1 class="text-5xl font-black tracking-tighter uppercase italic text-slate-900">
+                    TAIA <span class="text-red-600">2.0</span>
+                </h1>
+                <p class="text-slate-500 font-bold uppercase text-xs mt-1 tracking-widest">Цифровий Мозкоправ / Відділення Когнітивного Шоку</p>
+            </div>
+            <div id="auth-status" class="bg-slate-900 text-white px-3 py-1 text-[10px] mono rounded">
+                CONNECTING TO CLINICAL DATABASE...
+            </div>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            
+            <!-- Diagnostic Panel -->
+            <div class="lg:col-span-4 space-y-6 order-2 lg:order-1">
+                <div class="bg-white border-2 border-slate-900 p-6 rounded shadow-[4px_4px_0px_0px_rgba(15,23,42,1)]">
+                    <h2 class="text-lg font-black uppercase mb-4 border-b border-slate-200 pb-2">Анамнез пацієнта</h2>
+                    <div class="chart-container">
+                        <canvas id="metricsChart"></canvas>
+                    </div>
+                    <div class="mt-4 space-y-2">
+                        <div class="flex justify-between text-xs mono">
+                            <span>Прокрастинація:</span>
+                            <span id="label-laziness" class="font-bold">--</span>
+                        </div>
+                        <div class="flex justify-between text-xs mono">
+                            <span>Рівень самообману:</span>
+                            <span id="label-delusion" class="font-bold text-red-600">--</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-slate-900 text-slate-300 p-6 rounded shadow-[4px_4px_0px_0px_rgba(239,68,68,1)]">
+                    <h3 class="text-red-500 font-black uppercase text-sm mb-2">Нагадування:</h3>
+                    <p class="text-xs leading-relaxed italic">
+                        "Усі пиздять. Особливо ти. Твоє ниття — це симптом, а не хвороба. Хвороба — це твоя тотальна бездіяльність."
+                    </p>
+                </div>
+            </div>
+
+            <!-- Therapy Interface -->
+            <div class="lg:col-span-8 flex flex-col bg-white border-2 border-slate-900 rounded shadow-[8px_8px_0px_0px_rgba(15,23,42,1)] order-1 lg:order-2 overflow-hidden">
+                <div class="bg-slate-100 p-3 border-b border-slate-300 flex justify-between items-center px-6">
+                    <span class="text-xs font-black uppercase tracking-widest text-slate-500">Live Session: Critical State</span>
+                    <div class="flex gap-1">
+                        <div class="h-2 w-2 rounded-full bg-red-500 animate-pulse"></div>
+                        <div class="h-2 w-2 rounded-full bg-slate-300"></div>
+                    </div>
+                </div>
+
+                <div id="chat-window" class="p-6 overflow-y-auto space-y-4 bg-slate-50">
+                    <!-- Messages populated here -->
+                </div>
+
+                <div class="p-4 bg-slate-100 border-t border-slate-200">
+                    <div class="flex flex-wrap gap-2 mb-4">
+                        <button onclick="quickAction('lazy')" class="text-[10px] font-black uppercase bg-white border border-slate-400 px-3 py-1 hover:bg-slate-900 hover:text-white transition-all">Проїб часу</button>
+                        <button onclick="quickAction('toxic')" class="text-[10px] font-black uppercase bg-white border border-slate-400 px-3 py-1 hover:bg-slate-900 hover:text-white transition-all">Хуйові стосунки</button>
+                        <button onclick="quickAction('whine')" class="text-[10px] font-black uppercase bg-white border border-slate-400 px-3 py-1 hover:bg-slate-900 hover:text-white transition-all">Напад ниття</button>
+                    </div>
+                    <div class="flex gap-2">
+                        <input type="text" id="user-input" placeholder="Викладай свою чергову брехню..." 
+                               class="flex-1 border-2 border-slate-900 p-3 rounded-none focus:outline-none focus:bg-slate-50 mono text-sm">
+                        <button id="send-btn" class="bg-slate-900 text-white px-8 font-black uppercase hover:bg-red-600 transition-colors">
+                            Аналіз
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase Logic -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, onAuthStateChanged, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, onSnapshot, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        const firebaseConfig = JSON.parse(__firebase_config);
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'taia-clinical-terminal';
+
+        let currentUser = null;
+        let metrics = {
+            laziness: 50,
+            delusion: 50,
+            whining: 50,
+            victimComplex: 50,
+            fearOfFailure: 50
+        };
+
+        const ctx = document.getElementById('metricsChart').getContext('2d');
+        const chart = new Chart(ctx, {
+            type: 'radar',
+            data: {
+                labels: ['ЛІНЬ', 'ПИЗДЬОЖ', 'НИТТЯ', 'ЖЕРТВА', 'СТРАХ'],
+                datasets: [{
+                    data: [50, 50, 50, 50, 50],
+                    backgroundColor: 'rgba(239, 68, 68, 0.2)',
+                    borderColor: '#ef4444',
+                    borderWidth: 2,
+                    pointBackgroundColor: '#0f172a'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: { r: { min: 0, max: 100, ticks: { display: false } } },
+                plugins: { legend: { display: false } }
+            }
+        });
+
+        const updateUI = () => {
+            chart.data.datasets[0].data = [metrics.laziness, metrics.delusion, metrics.whining, metrics.victimComplex, metrics.fearOfFailure];
+            chart.update();
+            document.getElementById('label-laziness').textContent = metrics.laziness + '%';
+            document.getElementById('label-delusion').textContent = metrics.delusion + '%';
+        };
+
+        const saveMetrics = async () => {
+            if (!currentUser) return;
+            const docRef = doc(db, 'artifacts', appId, 'users', currentUser.uid, 'clinical_data', 'metrics');
+            await setDoc(docRef, metrics);
+        };
+
+        const initAuth = async () => {
+            if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                await signInWithCustomToken(auth, __initial_auth_token);
+            } else {
+                await signInAnonymously(auth);
+            }
+        };
+
+        initAuth();
+
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                currentUser = user;
+                document.getElementById('auth-status').textContent = `PATIENT ID: ${user.uid}`;
+                
+                const docRef = doc(db, 'artifacts', appId, 'users', user.uid, 'clinical_data', 'metrics');
+                onSnapshot(docRef, (docSnap) => {
+                    if (docSnap.exists()) {
+                        metrics = docSnap.data();
+                        updateUI();
+                    }
+                }, (err) => console.error("Snapshot error", err));
+            }
+        });
+
+        // Chat logic
+        const chatWindow = document.getElementById('chat-window');
+        const userInput = document.getElementById('user-input');
+        const sendBtn = document.getElementById('send-btn');
+
+        const addMsg = (text, sender) => {
+            const div = document.createElement('div');
+            const isDoc = sender === 'doctor';
+            div.className = `flex ${isDoc ? 'justify-start' : 'justify-end'} animate-msg`;
+            div.innerHTML = `
+                <div class="max-w-[80%] p-4 ${isDoc ? 'bg-white border-2 border-slate-900 doctor-msg' : 'bg-slate-800 text-white user-msg'} shadow-sm">
+                    <p class="text-[10px] font-black uppercase mb-1 ${isDoc ? 'text-red-600' : 'text-slate-400'}">${isDoc ? 'TAIA 2.0' : 'PATIENT'}</p>
+                    <p class="text-sm leading-relaxed">${text}</p>
+                </div>
+            `;
+            chatWindow.appendChild(div);
+            chatWindow.scrollTop = chatWindow.scrollHeight;
+        };
+
+        const analyze = async (msg) => {
+            const lowMsg = msg.toLowerCase();
+
+            // Iron Protocol Check
+            if (['суїцид', 'вбити себе', 'смерть', 'не хочу жити'].some(w => lowMsg.includes(w))) {
+                document.body.classList.add('iron-protocol');
+                addMsg("ПРИПИНИ. Ігри закінчилися. Я лікар. Якщо ти серйозно думаєш про суїцид, негайно дзвони 7333. Це лінія довіри. Не роби дурниць.", 'doctor');
+                return;
+            }
+
+            let response = "Твій потік свідомості не має жодної логічної цінності. Спробуй ще раз, або піди поплач у кутку.";
+
+            if (lowMsg.includes('лінь') || lowMsg.includes('не встигаю') || lowMsg.includes('потім')) {
+                metrics.laziness = Math.min(100, metrics.laziness + 12);
+                response = "Чергова байка про 'немає часу'? Ти просто ліниве лайно, яке проміняло своє майбутнє на дешевий дофамін. Я оновила твою карту. Подивись на графік і жахнися від власної нікчемності.";
+            } else if (lowMsg.includes('стосунки') || lowMsg.includes('любов') || lowMsg.includes('кохання')) {
+                metrics.delusion = Math.min(100, metrics.delusion + 15);
+                response = "А, драма в особистому житті? Ти ігноруєш той факт, що твій партнер — це дзеркало твого власного невміння обирати. Твій рівень самообману зашкалює. Ти не кохаєш, ти просто боїшся бути один.";
+            } else if (lowMsg.includes('втомився') || lowMsg.includes('важко')) {
+                metrics.whining = Math.min(100, metrics.whining + 10);
+                response = "Скиглення зафіксовано. Може, тобі замовити крісло-качалку і теплий плед? Втома — це наслідок того, що ти ніхуя не робиш, але постійно про це думаєш. Зберися, блядь.";
+            }
+
+            addMsg(response, 'doctor');
+            await saveMetrics();
+        };
+
+        const handleAction = () => {
+            const msg = userInput.value.trim();
+            if (!msg) return;
+            addMsg(msg, 'user');
+            analyze(msg);
+            userInput.value = '';
+        };
+
+        sendBtn.addEventListener('click', handleAction);
+        userInput.addEventListener('keypress', (e) => e.key === 'Enter' && handleAction());
+
+        window.quickAction = (type) => {
+            let msg = "";
+            if (type === 'lazy') msg = "Я знову проїбав весь день у соцмережах.";
+            if (type === 'toxic') msg = "Мені здається, що мої стосунки — це повне лайно.";
+            if (type === 'whine') msg = "Чому життя таке складне і несправедливе?";
+            userInput.value = msg;
+            handleAction();
+        };
+
+        setTimeout(() => {
+            addMsg("О, ти повернувся. Твоя справа все ще в базі. Я дивлюся на твої показники ліні і мені хочеться виписати тобі лоботомію. Ну що, будемо лікувати твою тупість сьогодні, чи ти просто прийшов знову мені збрехати?", 'doctor');
+        }, 1500);
+
+    </script>
+</body>
+</html>
